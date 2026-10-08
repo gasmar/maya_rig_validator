@@ -1,45 +1,72 @@
 # Maya Rig Validator
 
-A Maya rig validation tool built as a learning exercise for MVC architecture, pipeline development, and rigging workflows.
+A Python validation framework proof of concept designed to explore reusable validation architecture across DCC
+applications.
 
-## Overview
+The project separates DCC-agnostic validation infrastructure from Maya-specific validation rules, allowing different
+applications to implement their own rules while sharing consistent a execution and reporting interface.
 
-This project is a learning-focused Maya tool designed to explore the development of a rig validation workflow.
+**Current scope:** Five Maya joint validation rules, a generic validation runner, and standardized validation results.
 
-The goal is to build the tool incrementally while practicing software architecture and pipeline development concepts in a smaller, controlled codebase.
+**Purpose:** Evaluate the architecture, identify potential limitations, and gather feedback before expanding the
+framework.
 
-## Learning Goals
+## Architecture
 
-- Practice MVC architecture and separation of responsibilities.
-- Develop Maya tools using Python and Qt.
-- Explore common rig validation workflows.
-- Practice designing modular and extensible pipeline tools.
-- Improve understanding of testing and debugging Maya tools.
-- Gain experience organizing and maintaining a Python project.
+The framework is split into two parts:
 
-## Project Goals
+* `validation/` — Shared validation logic that doesn't depend on Maya.
+* `maya_validation/` — Maya-specific rules that use the shared framework.
 
-The validator will eventually be able to inspect a Maya rig and report potential issues before the asset moves further through a character pipeline.
+### Core Components
 
-Validation may include areas such as:
+* **ValidationRule (`rule.py`):** Abstract base class defining the `validate()` method that every rule must implement.
+* **ValidationRunner (`runner.py`):** Executes a list of rules and collects their results.
+* **ValidationResult (`result.py`):** Stores the validation name, pass/fail status, failed objects, and message.
 
-- Scene organization
-- Naming conventions
-- Skeleton structure
-- Joint transforms
-- Rig controls and attributes
-- Skinning and influences
-- Geometry
-- Maya scene state
+### Maya Rules
 
-The exact validation rules and architecture will evolve as the project develops.
+The current implementation includes five joint validations:
 
-## Development Approach
+* Scene contains joints
+* Unique joint names
+* Joint naming convention
+* Joint rotations
+* Joint scales
 
-This project is intentionally being developed incrementally.
+Each rule inherits from `ValidationRule` and returns a `ValidationResult`.
 
-Rather than designing the entire architecture upfront, features and structure will be introduced as the tool grows and new requirements are encountered. This allows architectural decisions to be explored and understood as part of the learning process.
+## Usage
 
-## Status
+The example runs inside Maya's Python environment.
 
-Early development.
+1. Add the repository root to Python's `sys.path`.
+2. Run `example.py` to execute all five validation rules.
+
+```python
+import sys
+
+sys.path.append(r"PATH_TO_REPOSITORY")
+
+import example
+
+example.main()
+```
+
+The results are printed to Maya's Script Editor, including the validation name, pass/fail status, failed objects, and
+message.
+
+NOTE:
+For this example, the validator expects joints' suffix to be `_jnt`.
+
+## Future Considerations
+
+* Supporting additional DCCs using the same validation framework.
+* Handling validation errors and skipped rules.
+* Introducing configurable validation settings.
+* Improving how scene data is passed to validation rules.
+* Adding unit tests for the shared framework.
+
+The goal is to get feedback on the current architecture before implementing these features.
+
+
