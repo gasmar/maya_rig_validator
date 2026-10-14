@@ -1,15 +1,15 @@
 from maya import cmds
 
+from maya_validation.context import MayaValidationContext
 from validation.result import ValidationResult
 from validation.rule import ValidationRule
 
 
 class SceneHasJointsRule(ValidationRule):
-    def __init__(self, scene_joints: list[str]) -> None:
-        self.scene_joints = scene_joints
 
-    def validate(self) -> ValidationResult:
-        scene_joints_result = bool(self.scene_joints)
+    def validate(self, context: MayaValidationContext) -> ValidationResult:
+        scene_joints = context.get_joints()
+        scene_joints_result = bool(scene_joints)
 
         result = ValidationResult(
             "Scene Has Joints",
@@ -21,14 +21,13 @@ class SceneHasJointsRule(ValidationRule):
 
 
 class UniqueJointNamesRule(ValidationRule):
-    def __init__(self, scene_joints: list[str]) -> None:
-        self.scene_joints = scene_joints
 
-    def validate(self) -> ValidationResult:
+    def validate(self, context: MayaValidationContext) -> ValidationResult:
         joint_names: dict[str, list[str]] = {}
         duplicate_joints = []
+        scene_joints = context.get_joints()
 
-        for joint in self.scene_joints:
+        for joint in scene_joints:
             joint_short_name = joint.split("|")[-1]
 
             if joint_short_name not in joint_names:
@@ -52,16 +51,15 @@ class UniqueJointNamesRule(ValidationRule):
 class JointNamingConventionRule(ValidationRule):
     def __init__(
             self,
-            scene_joints: list[str],
             joint_suffix: str
     ) -> None:
-        self.scene_joints = scene_joints
         self.joint_suffix = joint_suffix
 
-    def validate(self) -> ValidationResult:
+    def validate(self, context: MayaValidationContext) -> ValidationResult:
         invalid_name_joints = []
+        scene_joints = context.get_joints()
 
-        for joint in self.scene_joints:
+        for joint in scene_joints:
             joint_short_name = joint.split("|")[-1]
             if not joint_short_name.endswith(self.joint_suffix):
                 invalid_name_joints.append(joint)
@@ -76,13 +74,12 @@ class JointNamingConventionRule(ValidationRule):
 
 
 class JointRotationRule(ValidationRule):
-    def __init__(self, scene_joints: list[str]) -> None:
-        self.scene_joints = scene_joints
 
-    def validate(self) -> ValidationResult:
+    def validate(self, context: MayaValidationContext) -> ValidationResult:
         invalid_rotation_joints = []
+        scene_joints = context.get_joints()
 
-        for joint in self.scene_joints:
+        for joint in scene_joints:
             rx = cmds.getAttr(f"{joint}.rx")
             ry = cmds.getAttr(f"{joint}.ry")
             rz = cmds.getAttr(f"{joint}.rz")
@@ -100,13 +97,12 @@ class JointRotationRule(ValidationRule):
 
 
 class JointScaleRule(ValidationRule):
-    def __init__(self, scene_joints: list[str]) -> None:
-        self.scene_joints = scene_joints
 
-    def validate(self) -> ValidationResult:
+    def validate(self, context: MayaValidationContext) -> ValidationResult:
         invalid_scale_joints = []
+        scene_joints = context.get_joints()
 
-        for joint in self.scene_joints:
+        for joint in scene_joints:
             sx = cmds.getAttr(f"{joint}.sx")
             sy = cmds.getAttr(f"{joint}.sy")
             sz = cmds.getAttr(f"{joint}.sz")

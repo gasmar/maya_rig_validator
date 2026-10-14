@@ -1,5 +1,4 @@
-from maya import cmds
-
+from maya_validation.context import MayaValidationContext
 from maya_validation.rules import (
     SceneHasJointsRule,
     UniqueJointNamesRule,
@@ -11,18 +10,17 @@ from validation.runner import ValidationRunner
 
 
 def main() -> None:
-    scene_joints = cmds.ls(type="joint", long=True)
-
+    context = MayaValidationContext()
     rules = [
-        SceneHasJointsRule(scene_joints),
-        UniqueJointNamesRule(scene_joints),
-        JointNamingConventionRule(scene_joints, "_jnt"),
-        JointRotationRule(scene_joints),
-        JointScaleRule(scene_joints),
+        SceneHasJointsRule(),
+        UniqueJointNamesRule(),
+        JointNamingConventionRule("_jnt"),
+        JointRotationRule(),
+        JointScaleRule(),
     ]
 
     runner = ValidationRunner(rules)
-    results = runner.run()
+    results = runner.run(context)
 
     for result in results:
         print(result.name)

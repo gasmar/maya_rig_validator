@@ -18,6 +18,17 @@ The framework is split into two parts:
 * `validation/` — Shared validation logic that doesn't depend on Maya.
 * `maya_validation/` — Maya-specific rules that use the shared framework.
 
+### Validation Context
+
+`MayaValidationContext` provides scene data to Maya validation rules.
+
+Rules retrieve the data they need through the context rather than receiving scene objects during initialization. This
+keeps rule initialization independent of the objects being validated.
+
+The context also caches joint queries so multiple rules can reuse the same joint list during a validation run.
+
+A new context is created for each validation run to avoid reusing outdated scene data.
+
 ### Core Components
 
 * **ValidationRule (`rule.py`):** Abstract base class defining the `validate()` method that every rule must implement.
