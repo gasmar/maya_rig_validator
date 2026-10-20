@@ -1,35 +1,29 @@
-import sys
-import types
 import unittest
-from unittest.mock import patch
 
-fake_maya = types.ModuleType("maya")
-fake_cmds = types.ModuleType("maya.cmds")
-
-fake_maya.cmds = fake_cmds
-fake_cmds.getAttr = lambda attribute: None
-
-with patch.dict(sys.modules, {
-    "maya": fake_maya,
-    "maya.cmds": fake_cmds,
-}):
-
-    from maya_validation.rules import (
-        SceneHasJointsRule,
-        UniqueJointNamesRule,
-        JointNamingConventionRule,
-        JointRotationRule,
-        JointScaleRule
-    )
+from maya_validation.rules import (
+    SceneHasJointsRule,
+    UniqueJointNamesRule,
+    JointNamingConventionRule,
+    JointRotationRule,
+    JointScaleRule
+)
 
 
 class FakeMayaContext:
 
-    def __init__(self, joints: list[str]) -> None:
+    def __init__(
+            self,
+            joints: list[str],
+            attribute_values: dict[str, float] | None = None
+    ) -> None:
         self.joints = joints
+        self.attribute_values = attribute_values or {}
 
     def get_joints(self) -> list[str]:
         return self.joints
+
+    def get_attribute(self, joint: str, attribute_name: str):
+        return self.attribute_values[f"{joint}.{attribute_name}"]
 
 
 class TestSceneHasJointsRule(unittest.TestCase):
@@ -108,20 +102,31 @@ class TestJointNamingConventionRule(unittest.TestCase):
 class TestJointRotationRule(unittest.TestCase):
 
     def test_joints_with_zero_rotations(self):
-        with patch.object(fake_cmds, "getAttr", return_value=0):
-            joints = [
-                "|characterA|spine_jnt",
-                "|characterB|spine_jnt",
-            ]
-            context = FakeMayaContext(joints)
-            rule = JointRotationRule()
-            result = rule.validate(context)
+        joints = [
+            "|characterA|spine_jnt",
+            "|characterB|spine_jnt",
+        ]
+        attribute_values = {
+            "|characterA|spine_jnt.rx": 0,
+            "|characterA|spine_jnt.ry": 0,
+            "|characterA|spine_jnt.rz": 0,
+            "|characterB|spine_jnt.rx": 0,
+            "|characterB|spine_jnt.ry": 0,
+            "|characterB|spine_jnt.rz": 0,
+        }
+        context = FakeMayaContext(joints, attribute_values)
+        rule = JointRotationRule()
+        result = rule.validate(context)
 
-            self.assertTrue(result.passed)
-            self.assertEqual(result.failed_objects, [])
+        self.assertTrue(result.passed)
+        self.assertEqual(result.failed_objects, [])
 
     def test_joint_with_nonzero_rotation(self):
-        rotation_values = {
+        joints = [
+            "|root_jnt",
+            "|root_jnt|spine_jnt",
+        ]
+        attribute_values = {
             "|root_jnt.rx": 0,
             "|root_jnt.ry": 0,
             "|root_jnt.rz": 0,
@@ -129,37 +134,42 @@ class TestJointRotationRule(unittest.TestCase):
             "|root_jnt|spine_jnt.ry": 0,
             "|root_jnt|spine_jnt.rz": 0,
         }
-        with patch.object(fake_cmds, "getAttr", side_effect=rotation_values.get):
-            joints = [
-                "|root_jnt",
-                "|root_jnt|spine_jnt",
-            ]
+        context = FakeMayaContext(joints, attribute_values)
+        rule = JointRotationRule()
+        result = rule.validate(context)
 
-            context = FakeMayaContext(joints)
-            rule = JointRotationRule()
-            result = rule.validate(context)
-
-            self.assertFalse(result.passed)
-            self.assertEqual(result.failed_objects, ["|root_jnt|spine_jnt"])
+        self.assertFalse(result.passed)
+        self.assertEqual(result.failed_objects, ["|root_jnt|spine_jnt"])
 
 
 class TestJointScaleRule(unittest.TestCase):
 
     def test_joints_with_valid_scales(self):
-        with patch.object(fake_cmds, "getAttr", return_value=1):
-            joints = [
-                "|characterA|spine_jnt",
-                "|characterB|spine_jnt",
-            ]
-            context = FakeMayaContext(joints)
-            rule = JointScaleRule()
-            result = rule.validate(context)
+        joints = [
+            "|characterA|spine_jnt",
+            "|characterB|spine_jnt",
+        ]
+        attribute_values = {
+            "|characterA|spine_jnt.sx": 1,
+            "|characterA|spine_jnt.sy": 1,
+            "|characterA|spine_jnt.sz": 1,
+            "|characterB|spine_jnt.sx": 1,
+            "|characterB|spine_jnt.sy": 1,
+            "|characterB|spine_jnt.sz": 1,
+        }
+        context = FakeMayaContext(joints, attribute_values)
+        rule = JointScaleRule()
+        result = rule.validate(context)
 
-            self.assertTrue(result.passed)
-            self.assertEqual(result.failed_objects, [])
+        self.assertTrue(result.passed)
+        self.assertEqual(result.failed_objects, [])
 
     def test_joints_with_invalid_scales(self):
-        scale_values = {
+        joints = [
+            "|root_jnt",
+            "|root_jnt|spine_jnt",
+        ]
+        attribute_values = {
             "|root_jnt.sx": 1,
             "|root_jnt.sy": 1,
             "|root_jnt.sz": 1,
@@ -167,15 +177,9 @@ class TestJointScaleRule(unittest.TestCase):
             "|root_jnt|spine_jnt.sy": 0,
             "|root_jnt|spine_jnt.sz": 1,
         }
-        with patch.object(fake_cmds, "getAttr", side_effect=scale_values.get):
-            joints = [
-                "|root_jnt",
-                "|root_jnt|spine_jnt",
-            ]
-            context = FakeMayaContext(joints)
-            rule = JointScaleRule()
-            result = rule.validate(context)
+        context = FakeMayaContext(joints, attribute_values)
+        rule = JointScaleRule()
+        result = rule.validate(context)
 
-            self.assertFalse(result.passed)
-            self.assertEqual(result.failed_objects, ["|root_jnt|spine_jnt"])
-
+        self.assertFalse(result.passed)
+        self.assertEqual(result.failed_objects, ["|root_jnt|spine_jnt"])

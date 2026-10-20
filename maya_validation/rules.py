@@ -1,8 +1,12 @@
-from maya import cmds
+from __future__ import annotations
 
-from maya_validation.context import MayaValidationContext
+from typing import TYPE_CHECKING
+
 from validation.result import ValidationResult
 from validation.rule import ValidationRule
+
+if TYPE_CHECKING:
+    from maya_validation.context import MayaValidationContext
 
 
 class SceneHasJointsRule(ValidationRule):
@@ -80,9 +84,9 @@ class JointRotationRule(ValidationRule):
         scene_joints = context.get_joints()
 
         for joint in scene_joints:
-            rx = cmds.getAttr(f"{joint}.rx")
-            ry = cmds.getAttr(f"{joint}.ry")
-            rz = cmds.getAttr(f"{joint}.rz")
+            rx = context.get_attribute(joint, "rx")
+            ry = context.get_attribute(joint, "ry")
+            rz = context.get_attribute(joint, "rz")
 
             if rx or ry or rz:
                 invalid_rotation_joints.append(joint)
@@ -103,9 +107,9 @@ class JointScaleRule(ValidationRule):
         scene_joints = context.get_joints()
 
         for joint in scene_joints:
-            sx = cmds.getAttr(f"{joint}.sx")
-            sy = cmds.getAttr(f"{joint}.sy")
-            sz = cmds.getAttr(f"{joint}.sz")
+            sx = context.get_attribute(joint, "sx")
+            sy = context.get_attribute(joint, "sy")
+            sz = context.get_attribute(joint, "sz")
 
             if sx != 1 or sy != 1 or sz != 1:
                 invalid_scale_joints.append(joint)
