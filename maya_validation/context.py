@@ -13,3 +13,6 @@ class MayaValidationContext:
         assert joints is not None
 
         return joints
+
+    def get_attribute(self, joint: str, attribute: str):
+        return cmds.getAttr(f"{joint}.{attribute}")
