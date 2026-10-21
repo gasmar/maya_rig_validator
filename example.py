@@ -6,6 +6,7 @@ from maya_validation.rules import (
     JointRotationRule,
     JointScaleRule
 )
+from validation.report import ValidationReport
 from validation.runner import ValidationRunner
 
 
@@ -21,6 +22,7 @@ def main() -> None:
 
     runner = ValidationRunner(rules)
     results = runner.run(context)
+    report = ValidationReport(results)
 
     for result in results:
         print(result.name)
@@ -29,6 +31,12 @@ def main() -> None:
         print(result.message)
         print("---------------------")
 
+    print("-------REPORT-------")
+    print(f"total rules: {report.get_total_rules()}")
+    print(f"passed rules: {report.get_passed_rules()}")
+    print(f"failed rules: {report.get_failed_rules()}")
+    print(f"overall valid: {report.is_valid()}")
+    
 
 if __name__ == "__main__":
     main()
