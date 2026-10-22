@@ -4,7 +4,7 @@ from maya_validation.rules import (
     UniqueJointNamesRule,
     JointNamingConventionRule,
     JointRotationRule,
-    JointScaleRule
+    JointScaleRule, JointVisibilityRule
 )
 from validation.report import ValidationReport
 from validation.runner import ValidationRunner
@@ -18,6 +18,7 @@ def main() -> None:
         JointNamingConventionRule("_jnt"),
         JointRotationRule(),
         JointScaleRule(),
+        JointVisibilityRule()
     ]
 
     runner = ValidationRunner(rules)
