@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from validation.result import ValidationResult
-from validation.rule import ValidationRule
+from validation.validation import ValidationResult, ValidationRule
 
 if TYPE_CHECKING:
     from maya_validation.context import MayaValidationContext
