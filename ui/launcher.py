@@ -3,7 +3,7 @@ from maya_validation.rules import (
     UniqueJointNamesRule,
     JointNamingConventionRule,
     JointRotationRule,
-    JointScaleRule,
+    JointScaleRule, JointVisibilityRule,
 )
 from ui.controller import ValidationController
 from ui.model import ValidationModel
@@ -17,7 +17,8 @@ def launch() -> ValidationView:
         UniqueJointNamesRule(),
         JointNamingConventionRule("_jnt"),
         JointRotationRule(),
-        JointScaleRule()
+        JointScaleRule(),
+        JointVisibilityRule()
     ]
     runner = ValidationRunner(rules)
     model = ValidationModel()

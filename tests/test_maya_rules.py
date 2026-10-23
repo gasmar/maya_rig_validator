@@ -5,7 +5,8 @@ from maya_validation.rules import (
     UniqueJointNamesRule,
     JointNamingConventionRule,
     JointRotationRule,
-    JointScaleRule
+    JointScaleRule,
+    JointVisibilityRule
 )
 
 
@@ -179,6 +180,41 @@ class TestJointScaleRule(unittest.TestCase):
         }
         context = FakeMayaContext(joints, attribute_values)
         rule = JointScaleRule()
+        result = rule.validate(context)
+
+        self.assertFalse(result.passed)
+        self.assertEqual(result.failed_objects, ["|root_jnt|spine_jnt"])
+
+
+class TestJointVisibilityRule(unittest.TestCase):
+
+    def test_visible_joints(self):
+        joints = [
+            "|root_jnt",
+            "|root_jnt|spine_jnt",
+        ]
+        attribute_values = {
+            "|root_jnt.visibility": True,
+            "|root_jnt|spine_jnt.visibility": True,
+        }
+        context = FakeMayaContext(joints, attribute_values)
+        rule = JointVisibilityRule()
+        result = rule.validate(context)
+
+        self.assertTrue(result.passed)
+        self.assertEqual(result.failed_objects, [])
+
+    def test_invisible_joints(self):
+        joints = [
+            "|root_jnt",
+            "|root_jnt|spine_jnt",
+        ]
+        attribute_values = {
+            "|root_jnt.visibility": True,
+            "|root_jnt|spine_jnt.visibility": False,
+        }
+        context = FakeMayaContext(joints, attribute_values)
+        rule = JointVisibilityRule()
         result = rule.validate(context)
 
         self.assertFalse(result.passed)
