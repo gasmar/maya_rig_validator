@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from validation.validation import ValidationResult, ValidationRule
+from validation.validation import ValidationResult, ValidationRule, ValidationState
 
 if TYPE_CHECKING:
     from maya_validation.context import MayaValidationContext
@@ -11,15 +11,16 @@ if TYPE_CHECKING:
 class SceneHasJointsRule(ValidationRule):
 
     def validate(self, context: MayaValidationContext) -> ValidationResult:
+        state = ValidationState.PASS
         scene_joints = context.get_joints()
-        scene_joints_result = bool(scene_joints)
         message = "Scene has joints."
         if not scene_joints:
+            state = ValidationState.FAIL
             message = "No joints in scene."
 
         result = ValidationResult(
             "Joints in scene",
-            scene_joints_result,
+            state,
             [],
             message
         )
@@ -29,6 +30,7 @@ class SceneHasJointsRule(ValidationRule):
 class UniqueJointNamesRule(ValidationRule):
 
     def validate(self, context: MayaValidationContext) -> ValidationResult:
+        state = ValidationState.PASS
         joint_names: dict[str, list[str]] = {}
         duplicate_joints = []
         scene_joints = context.get_joints()
@@ -47,11 +49,12 @@ class UniqueJointNamesRule(ValidationRule):
                 duplicate_joints.extend(joints)
 
         if duplicate_joints:
+            state = ValidationState.FAIL
             message = "Some joint names are not unique."
 
         result = ValidationResult(
             "Unique Joint Names",
-            not duplicate_joints,
+            state,
             duplicate_joints,
             message
         )
@@ -66,6 +69,7 @@ class JointNamingConventionRule(ValidationRule):
         self.joint_suffix = joint_suffix
 
     def validate(self, context: MayaValidationContext) -> ValidationResult:
+        state = ValidationState.PASS
         invalid_name_joints = []
         scene_joints = context.get_joints()
         message = "Valid joint naming convention."
@@ -76,11 +80,12 @@ class JointNamingConventionRule(ValidationRule):
                 invalid_name_joints.append(joint)
 
         if invalid_name_joints:
+            state = ValidationState.FAIL
             message = "Some joints do not follow the naming convention(s)."
 
         result = ValidationResult(
             "Joint Naming Convention",
-            not invalid_name_joints,
+            state,
             invalid_name_joints,
             message
         )
@@ -90,6 +95,7 @@ class JointNamingConventionRule(ValidationRule):
 class JointRotationRule(ValidationRule):
 
     def validate(self, context: MayaValidationContext) -> ValidationResult:
+        state = ValidationState.PASS
         invalid_rotation_joints = []
         scene_joints = context.get_joints()
         message = "All joint rotations are zero."
@@ -103,11 +109,12 @@ class JointRotationRule(ValidationRule):
                 invalid_rotation_joints.append(joint)
 
         if invalid_rotation_joints:
+            state = ValidationState.FAIL
             message = "Some joints have non-zero rotations."
 
         result = ValidationResult(
             "Joint Rotations",
-            not invalid_rotation_joints,
+            state,
             invalid_rotation_joints,
             message
         )
@@ -117,6 +124,7 @@ class JointRotationRule(ValidationRule):
 class JointScaleRule(ValidationRule):
 
     def validate(self, context: MayaValidationContext) -> ValidationResult:
+        state = ValidationState.PASS
         invalid_scale_joints = []
         scene_joints = context.get_joints()
         message = "All joint scales are 1."
@@ -130,11 +138,12 @@ class JointScaleRule(ValidationRule):
                 invalid_scale_joints.append(joint)
 
         if invalid_scale_joints:
+            state = ValidationState.FAIL
             message = "Some joints have invalid scale values."
 
         result = ValidationResult(
             "Joint Scales",
-            not invalid_scale_joints,
+            state,
             invalid_scale_joints,
             message
         )
@@ -144,22 +153,23 @@ class JointScaleRule(ValidationRule):
 class JointVisibilityRule(ValidationRule):
 
     def validate(self, context: MayaValidationContext) -> ValidationResult:
+        state = ValidationState.PASS
         invisible_joints = []
         scene_joints = context.get_joints()
         message = "All joints are visible."
 
         for joint in scene_joints:
             visibility = context.get_attribute(joint, "visibility")
-
             if not visibility:
                 invisible_joints.append(joint)
 
         if invisible_joints:
+            state = ValidationState.FAIL
             message = "Some joints are not visible."
 
         result = ValidationResult(
             "Visible Joints",
-            not invisible_joints,
+            state,
             invisible_joints,
             message
         )

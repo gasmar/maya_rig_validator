@@ -1,8 +1,11 @@
 import unittest
 
-from validation.result import ValidationResult
-from validation.rule import ValidationRule
-from validation.runner import ValidationRunner
+from validation.validation import (
+    ValidationResult,
+    ValidationRule,
+    ValidationState,
+    ValidationRunner
+)
 
 
 class FakeRule(ValidationRule):
@@ -10,7 +13,7 @@ class FakeRule(ValidationRule):
     def validate(self, context):
         return ValidationResult(
             name="Fake Rule",
-            passed=True,
+            state=ValidationState.PASS,
             failed_objects=[],
             message="Fake validation passed."
         )
@@ -21,7 +24,7 @@ class FailingRule(ValidationRule):
     def validate(self, context) -> ValidationResult:
         return ValidationResult(
             name="Failing Rule",
-            passed=False,
+            state=ValidationState.FAIL,
             failed_objects=["joint1"],
             message="Validation failed."
         )
@@ -37,7 +40,7 @@ class ContextCheckRule(ValidationRule):
 
         return ValidationResult(
             name="Context Check",
-            passed=True,
+            state=ValidationState.PASS,
             failed_objects=[],
             message="Context received."
         )
@@ -55,7 +58,7 @@ class TestValidationRunner(unittest.TestCase):
         runner = ValidationRunner(rules)
         results = runner.run(None)
 
-        self.assertEqual(results, rules)
+        self.assertEqual(results, [])
 
     def test_runner_with_one_rule(self):
         rule = FakeRule()
@@ -64,7 +67,7 @@ class TestValidationRunner(unittest.TestCase):
         results = runner.run(None)
 
         self.assertEqual(len(results), len(rules))
-        self.assertTrue(results[0].passed)
+        self.assertEqual(results[0].state, ValidationState.PASS)
 
     def test_runner_passes_context(self):
         rule = ContextCheckRule()
@@ -83,7 +86,9 @@ class TestValidationRunner(unittest.TestCase):
         results = runner.run(None)
 
         self.assertEqual(len(results), 3)
-        self.assertTrue(all(result.passed for result in results))
+        self.assertTrue(
+            all(result.state == ValidationState.PASS for result in results)
+        )
 
     def test_runner_with_failing_rule(self):
         rule = FailingRule()
@@ -91,7 +96,7 @@ class TestValidationRunner(unittest.TestCase):
         runner = ValidationRunner(rules)
         results = runner.run(None)
 
-        self.assertFalse(results[0].passed)
+        self.assertEqual(results[0].state, ValidationState.FAIL)
         self.assertEqual(results[0].failed_objects, ["joint1"])
 
     def test_runner_with_mixed_results(self):
@@ -101,10 +106,12 @@ class TestValidationRunner(unittest.TestCase):
         rules = [fake_rule1, failed_rule1, fake_rule2]
         runner = ValidationRunner(rules)
         results = runner.run(None)
-        passed_values = [result.passed for result in results]
+        result_states = [result.state for result in results]
 
         self.assertEqual(len(results), 3)
-        self.assertEqual(passed_values, [True, False, True])
+        self.assertEqual(result_states, [ValidationState.PASS,
+                                         ValidationState.FAIL,
+                                         ValidationState.PASS])
 
     def test_runner_with_error_rule(self):
         error_rule = ErrorRule()

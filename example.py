@@ -4,11 +4,13 @@ from maya_validation.rules import (
     UniqueJointNamesRule,
     JointNamingConventionRule,
     JointRotationRule,
-    JointScaleRule, JointVisibilityRule
+    JointScaleRule,
+    JointVisibilityRule
 )
-from validation.report import ValidationReport
-from validation.runner import ValidationRunner
-
+from validation.validation import (
+    ValidationRunner,
+    ValidationReport
+)
 
 def main() -> None:
     context = MayaValidationContext()
@@ -27,16 +29,13 @@ def main() -> None:
 
     for result in results:
         print(result.name)
-        print(result.passed)
+        print(result.state)
         print(result.failed_objects)
         print(result.message)
         print("---------------------")
 
     print("-------REPORT-------")
-    print(f"total rules: {report.get_total_rules()}")
-    print(f"passed rules: {report.get_passed_rules()}")
-    print(f"failed rules: {report.get_failed_rules()}")
-    print(f"overall valid: {report.is_valid()}")
+    print(f"Has failures: {report.has_any_failures()}")
     
 
 if __name__ == "__main__":

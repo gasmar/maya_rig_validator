@@ -8,6 +8,7 @@ from maya_validation.rules import (
     JointScaleRule,
     JointVisibilityRule
 )
+from validation.validation import ValidationState
 
 
 class FakeMayaContext:
@@ -35,14 +36,14 @@ class TestSceneHasJointsRule(unittest.TestCase):
         rule = SceneHasJointsRule()
         result = rule.validate(context)
 
-        self.assertTrue(result.passed)
+        self.assertEqual(result.state, ValidationState.PASS)
 
     def test_scene_without_joints(self):
         context = FakeMayaContext([])
         rule = SceneHasJointsRule()
         result = rule.validate(context)
 
-        self.assertFalse(result.passed)
+        self.assertEqual(result.state, ValidationState.FAIL)
 
 
 class TestUniqueJointsRule(unittest.TestCase):
@@ -56,7 +57,7 @@ class TestUniqueJointsRule(unittest.TestCase):
         rule = UniqueJointNamesRule()
         result = rule.validate(context)
 
-        self.assertTrue(result.passed)
+        self.assertEqual(result.state, ValidationState.PASS)
 
     def test_duplicate_joints(self):
         joints = [
@@ -67,7 +68,7 @@ class TestUniqueJointsRule(unittest.TestCase):
         rule = UniqueJointNamesRule()
         result = rule.validate(context)
 
-        self.assertFalse(result.passed)
+        self.assertEqual(result.state, ValidationState.FAIL)
         self.assertEqual(result.failed_objects, joints)
 
 
@@ -83,7 +84,7 @@ class TestJointNamingConventionRule(unittest.TestCase):
         rule = JointNamingConventionRule("_jnt")
         result = rule.validate(context)
 
-        self.assertTrue(result.passed)
+        self.assertEqual(result.state, ValidationState.PASS)
         self.assertEqual(result.failed_objects, [])
 
     def test_invalid_joint_names(self):
@@ -96,7 +97,7 @@ class TestJointNamingConventionRule(unittest.TestCase):
         rule = JointNamingConventionRule("_jnt")
         result = rule.validate(context)
 
-        self.assertFalse(result.passed)
+        self.assertEqual(result.state, ValidationState.FAIL)
         self.assertEqual(result.failed_objects, ["|root_jnt|spine"])
 
 
@@ -119,7 +120,7 @@ class TestJointRotationRule(unittest.TestCase):
         rule = JointRotationRule()
         result = rule.validate(context)
 
-        self.assertTrue(result.passed)
+        self.assertEqual(result.state, ValidationState.PASS)
         self.assertEqual(result.failed_objects, [])
 
     def test_joint_with_nonzero_rotation(self):
@@ -139,7 +140,7 @@ class TestJointRotationRule(unittest.TestCase):
         rule = JointRotationRule()
         result = rule.validate(context)
 
-        self.assertFalse(result.passed)
+        self.assertEqual(result.state, ValidationState.FAIL)
         self.assertEqual(result.failed_objects, ["|root_jnt|spine_jnt"])
 
 
@@ -162,7 +163,7 @@ class TestJointScaleRule(unittest.TestCase):
         rule = JointScaleRule()
         result = rule.validate(context)
 
-        self.assertTrue(result.passed)
+        self.assertEqual(result.state, ValidationState.PASS)
         self.assertEqual(result.failed_objects, [])
 
     def test_joints_with_invalid_scales(self):
@@ -182,7 +183,7 @@ class TestJointScaleRule(unittest.TestCase):
         rule = JointScaleRule()
         result = rule.validate(context)
 
-        self.assertFalse(result.passed)
+        self.assertEqual(result.state, ValidationState.FAIL)
         self.assertEqual(result.failed_objects, ["|root_jnt|spine_jnt"])
 
 
@@ -201,7 +202,7 @@ class TestJointVisibilityRule(unittest.TestCase):
         rule = JointVisibilityRule()
         result = rule.validate(context)
 
-        self.assertTrue(result.passed)
+        self.assertEqual(result.state, ValidationState.PASS)
         self.assertEqual(result.failed_objects, [])
 
     def test_invisible_joints(self):
@@ -217,5 +218,5 @@ class TestJointVisibilityRule(unittest.TestCase):
         rule = JointVisibilityRule()
         result = rule.validate(context)
 
-        self.assertFalse(result.passed)
+        self.assertEqual(result.state, ValidationState.FAIL)
         self.assertEqual(result.failed_objects, ["|root_jnt|spine_jnt"])

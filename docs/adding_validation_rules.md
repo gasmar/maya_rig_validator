@@ -1,89 +1,187 @@
-# Adding a New Validation Rule
+# Adding Validation Rules
 
-## 1. Create a feature branch
+This guide explains how to add new validation rules to the Maya Rig Validator.
 
-Start from an updated `main` branch.
+## Architecture Overview
 
-```bash
-git switch main
-git pull --ff-only origin main
-git switch -c feature/rule-name
+The validator separates reusable validation logic, Maya-specific functionality, and the Qt interface.
+
+```text
+maya_rig_validator/
+├── validation/
+│   └── validation.py
+├── maya_validation/
+│   ├── context.py
+│   ├── rules.py
+│   └── launcher.py
+├── ui/
+│   └── view.py
+└── tests/
+    ├── test_maya_rules.py
+    └── test_runner.py
 ```
 
-## 2. Implement the rule
+**Core components:**
 
-**File:** `maya_validation/rules.py`
+- `ValidationRule`: Abstract base class for validation rules.
+- `ValidationResult`: Stores a rule's name, state, affected objects, and message.
+- `ValidationState`: Defines `PASS`, `WARNING`, and `FAIL`.
+- `ValidationRunner`: Executes validation rules against a supplied context.
+- `ValidationReport`: Groups results and provides `has_any_failures()`.
 
-- Create a class inheriting from `ValidationRule`.
-- Implement `validate(self, context) -> ValidationResult`.
-- Retrieve scene data using the context.
-- Identify and collect invalid objects.
-- Define success and failure messages.
-- Return a `ValidationResult` containing:
-    - Rule name
-    - Pass/fail status
-    - Failed objects (full DAG paths)
-    - Message
+The validation framework has no dependencies on Maya or Qt.
 
-## 3. Register the rule
+## 1. Create a Validation Rule
 
-**File:** `ui/launcher.py`
+Add a new class to `maya_validation/rules.py`.
 
-- Import the new rule.
-- Add an instance to the `rules` list.
-- No changes to the runner, model, view, or controller should be necessary.
+Every rule must inherit from `ValidationRule` and implement `validate(context)`.
 
-## 4. Test in Maya
+Example: A rule that checks whether joints are visible.
 
-- Launch the validator.
-- Test a passing scenario.
-- Test a failing scenario.
-- Verify that failed objects appear in the UI and can be selected.
+```python
+from validation.validation import (
+    ValidationRule,
+    ValidationResult,
+    ValidationState,
+)
 
-## 5. Write unit tests
 
-**File:** `tests/test_maya_rules.py`
+class JointVisibilityRule(ValidationRule):
+    def validate(self, context) -> ValidationResult:
+        joints = context.get_joints()
 
-- Import the new rule.
-- Use `FakeMayaContext` to supply test data.
-- Test a passing scenario.
-- Test a failing scenario.
-- Verify `result.passed` and `result.failed_objects`.
+        hidden_joints = [
+            joint
+            for joint in joints
+            if not context.get_attribute(joint, "visibility")
+        ]
 
-Run tests from the project root:
+        state = (
+            ValidationState.FAIL
+            if hidden_joints
+            else ValidationState.PASS
+        )
+
+        return ValidationResult(
+            name="Joint Visibility",
+            state=state,
+            failed_objects=hidden_joints,
+            message="Some joints are hidden." if hidden_joints
+            else "All joints are visible.",
+        )
+```
+
+Rules access scene information through the supplied context rather than importing `maya.cmds` directly.
+
+## 2. Return a ValidationResult
+
+Each rule returns a `ValidationResult` with the following information:
+
+| Field            | Description                                  |
+|------------------|----------------------------------------------|
+| `name`           | Human-readable name of the validation rule   |
+| `state`          | `ValidationState.PASS`, `WARNING`, or `FAIL` |
+| `failed_objects` | List of objects associated with the result   |
+| `message`        | Description of the validation outcome        |
+
+**Validation states:**
+
+- `PASS`: Validation succeeded.
+- `WARNING`: A non-blocking issue was detected.
+- `FAIL`: Validation failed.
+
+`ValidationReport.has_any_failures()` returns `True` only when at least one result has the `FAIL` state.
+
+## 3. Register the Rule
+
+Open `maya_validation/launcher.py`.
+
+Import your new rule and add it to the list inside `launch()`:
+
+```python
+rules = [
+    SceneHasJointsRule(),
+    UniqueJointNamesRule(),
+    JointNamingConventionRule("_jnt"),
+    JointRotationRule(),
+    JointScaleRule(),
+    JointVisibilityRule(),
+    # YourNewRule(),
+]
+```
+
+The launcher creates the runner and supplies the UI with callable functions for running validation and selecting
+objects.
+
+This keeps `ui/view.py` independent of Maya.
+
+## 4. Write Unit Tests
+
+Add tests to `tests/test_maya_rules.py`.
+
+Use a fake context to supply test data without requiring Maya.
+
+Example:
+
+```python
+import unittest
+
+from maya_validation.rules import JointVisibilityRule
+from validation.validation import ValidationState
+
+
+class FakeContext:
+    def get_joints(self):
+        return ["root_jnt"]
+
+    def get_attribute(self, joint, attribute):
+        return False
+
+
+class TestJointVisibilityRule(unittest.TestCase):
+    def test_hidden_joint_fails(self):
+        result = JointVisibilityRule().validate(FakeContext())
+
+        self.assertEqual(result.state, ValidationState.FAIL)
+        self.assertEqual(result.failed_objects, ["root_jnt"])
+```
+
+Test both valid and invalid scenarios for each new rule. Add warning-state tests if the rule can produce warnings.
+
+## 5. Run the Tests
+
+From the repository root:
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-## 6. Commit and merge
+Tests should run without Maya when using fake contexts.
 
-After all tests pass:
+## 6. Test in Maya
 
-```bash
-git add .
-git commit -m "Add new validation rule"
-git push -u origin feature/rule-name
-```
+Launch the validator through `maya_validation.launcher.launch()`.
 
-When ready to merge:
+Verify that:
 
-```bash
-git switch main
-git pull --ff-only origin main
-git merge --no-ff feature/rule-name
-git push origin main
-```
+- The new rule appears in the results list.
+- Its state and message are correct.
+- Selecting a result displays its details.
+- Clicking an affected object selects it in Maya.
 
-## Important Architecture Reminder
+## Design Guidelines
 
-- **Context:** Retrieves Maya scene data.
-- **Rule:** Performs validation and creates a result.
-- **Runner:** Executes registered rules.
-- **Report:** Summarizes validation results.
-- **Model:** Stores the report for the UI.
-- **View:** Displays the results.
-- **Controller:** Connects UI interactions to validation logic.
+- Keep the core validation framework independent of Maya and Qt.
+- Put Maya-specific rules and scene access in `maya_validation/`.
+- Keep `ui/view.py` independent of Maya.
+- Return structured `ValidationResult` objects rather than printing validation outcomes.
+- Add unit tests for new rules.
+- Register new rules in the Maya launcher.
 
-**Golden rule:** Adding a new validation rule should generally require changes only to `rules.py`, `launcher.py`, and
-`test_maya_rules.py`.
+## POC Limitations
+
+The current UI supports basic PASS/FAIL display. Although the validation framework supports `WARNING`, warning-specific
+presentation is not yet implemented.
+
+A custom `QListWidgetItem` for formatting validation results is planned as a separate UI improvement.
